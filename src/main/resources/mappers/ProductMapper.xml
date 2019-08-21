@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC  
+    "-//mybatis.org//DTD Mapper 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+   
+<mapper namespace="com.fh.shop.backend.mapper.product.IProductMapper">
+	<!-- 建立数据库的表与JavaBean的映射关系 -->
+	<resultMap type="product" id="productMap">
+		<result column="id" property="id"/>
+		<result column="productName" property="productName"/>
+		<result column="price" property="productPrice"/>
+		<result column="updateTime" property="updateTime"/>
+		<result column="entryTime" property="entryTime"/>
+		<result column="brandName" property="brand.brandName"/>
+		<result column="brandId" property="brand.id"/>
+		<result column="productImagePath" property="productImagePath"/>
+	</resultMap>
+	
+	<!-- 分页查询 支撑条件 -->
+	<sql id="productWhere">
+		<where>
+			<if test="productName != null and productName != '' ">
+				productName like concat('%',#{productName},'%')
+			</if>
+			<if test="minPrice != null and minPrice >=0 ">
+				and price >= #{minPrice} 
+			</if>
+			<if test="maxPrice != null and maxPrice >=0">
+				and price &lt;= #{maxPrice}
+			</if>
+			<if test="minUpdateTime != null">
+				and p.updateTime >= #{minUpdateTime}
+			</if>
+			<if test="maxUpdateTime != null">
+				and p.updateTime &lt;= #{maxUpdateTime}
+			</if>
+			<if test="minEntryTime != null">
+				and p.entryTime >= #{minEntryTime}
+			</if>
+			<if test="maxEntryTime != null">
+				and p.entryTime &lt;= #{maxEntryTime}
+			</if>
+			<if test="brand.id != null and brand.id != -1">
+			 	and brandId = #{brand.id} 
+			</if>
+		</where>
+	</sql>
+
+	<select id="findProductList" resultMap="productMap">
+		select p.id,p.productName,p.price,p.productImagePath,b.brandName from
+		t_product p left join t_brand b on b.id=p.brandId
+	</select>
+
+	<select id="exportProductExcel" parameterType="product" resultMap="productMap">
+		select t.* from
+		(select p.*,b.brandName from t_product p left join t_brand b on b.id=p.brandId
+		<include refid="productWhere" ></include>) t
+	</select>
+
+	<!-- 删除品牌时判断是够又关联的信息 -->
+	<select id="findProductListByBrandId" parameterType="int" resultMap="productMap">
+		select * from t_product where brandId in 
+		<foreach collection="list" item="value" open="(" separator="," close=")">
+			#{value}
+		</foreach>
+	</select>
+	
+	<!-- 查询分页数据 -->
+	<select id="searchData" parameterType="product" resultMap="productMap">
+		select t.* from 
+			(select p.id,p.productName,p.price,p.updateTime,p.entryTime,p.productImagePath,b.brandName from t_product p left join t_brand b on p.brandId = b.id
+			<include refid="productWhere"></include>
+		order by ${sortField} ${sort}
+			) t
+		limit #{start},#{length}
+	</select>
+	
+	<!-- 查询总条数 -->
+	<select id="findTotalCount" parameterType="product" resultType="long">
+		select count(*) from t_product p left join t_brand b on p.brandId = b.id
+		<include refid="productWhere"></include>
+	</select>
+	<!-- 增加数据 -->
+	<insert id="addProductInfo" parameterType="product">
+		<selectKey keyProperty="id" order="AFTER" resultType="int">
+			select last_insert_id()
+		</selectKey>
+		insert into t_product (productName,price,entryTime,updateTime,brandId,productImagePath) values (#{productName},#{productPrice},#{entryTime},#{updateTime},#{brand.id},#{productImagePath})
+	</insert>
+	<!-- 查询 无条件 无分页 -->
+	<select id="queryProductInfo" resultMap="productMap">
+		select id,productName,price,updateTime,entryTime,productImagePath from t_product
+	</select>
+	<!-- 删除 -->
+	<delete id="deleteProduct" parameterType="int">
+		delete from t_product where id=#{value}
+	</delete>
+	<!-- 回显 -->
+	<select id="toUpdateById" parameterType="int" resultMap="productMap">
+		select id,productName,price,updateTime,entryTime,brandId,productImagePath from t_product where id = #{id}
+	</select>
+	<!-- 修改 -->
+	<update id="updateProduct" parameterType="product">
+		update t_product set brandId=#{brand.id},productName=#{productName},price=#{productPrice},updateTime=#{updateTime},productImagePath=#{productImagePath} where id=#{id}
+	</update>
+	<!-- 批量删除 -->
+	<!-- 如果传入的是单参数且参数类型是一个List的时候，collection属性值为list -->
+	<!-- 如果传入的是单参数且参数类型是一个array数组的时候,参数类型为parameterType="数组的类型" collection的属性值为array  -->
+	<delete id="deleteBatch" parameterType="int">
+		delete from t_product where id in
+		<foreach item="item" collection="list" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	<!--批量删除：获取主图片-->
+	<select id="findBatchProductImage" parameterType="int" resultMap="productMap">
+		select productImagePath from t_product where id in
+		<foreach item="item" collection="list" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</select>
+</mapper>

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="GBK"?>
+	<beans xmlns="http://www.springframework.org/schema/beans"  
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xmlns:aop="http://www.springframework.org/schema/aop"  
+    xmlns:context="http://www.springframework.org/schema/context" 
+    xmlns:tx="http://www.springframework.org/schema/tx"  
+    xmlns:jpa="http://www.springframework.org/schema/data/jpa"  
+    xmlns:security="http://www.springframework.org/schema/security"  
+    xsi:schemaLocation="  
+        http://www.springframework.org/schema/aop   
+        http://www.springframework.org/schema/aop/spring-aop-4.0.xsd  
+        http://www.springframework.org/schema/security   
+        http://www.springframework.org/schema/security/spring-security-3.2.xsd  
+        http://www.springframework.org/schema/beans   
+        http://www.springframework.org/schema/beans/spring-beans-4.0.xsd  
+        http://www.springframework.org/schema/data/jpa   
+        http://www.springframework.org/schema/data/jpa/spring-jpa-1.3.xsd  
+        http://www.springframework.org/schema/tx   
+        http://www.springframework.org/schema/tx/spring-tx-4.0.xsd  
+        http://www.springframework.org/schema/context   
+        http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+    
+    <!-- 扫描service层 -->
+    <context:component-scan base-package="com.fh.shop.backend.biz"/>
+    
+    <!-- 加载数据源的属性文件 -->
+	<context:property-placeholder location="classpath:datasource.properties, classpath:system.properties"/>
+	
+	<!-- 配置主库数据源 -->
+    <bean id="dataBaseInfo"
+          class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+        <property name="url">
+            <value>${jdbc.master.dbcp.url}</value>
+        </property>
+        <property name="driverClassName">
+            <value>${jdbc.master.driverClassName}</value>
+        </property>
+        <property name="username">
+            <value>${jdbc.master.username}</value>
+        </property>
+        <property name="password">
+            <value>${jdbc.master.password}</value>
+        </property>
+        <!-- 连接池中的最大的连接数 -->
+        <property name="maxActive">
+            <value>${jdbc.master.maxActive}</value>
+        </property>
+        <!-- 最大等待的时间 (单位:毫秒) -->
+        <property name="maxWait">
+            <value>${jdbc.master.maxWait}</value>
+        </property>
+    </bean>
+    <!--配置从库数据源-->
+    <bean id="slaveDataBaseInfo"
+          class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+        <property name="url">
+            <value>${jdbc.slave.dbcp.url}</value>
+        </property>
+        <property name="driverClassName">
+            <value>${jdbc.slave.driverClassName}</value>
+        </property>
+        <property name="username">
+            <value>${jdbc.slave.username}</value>
+        </property>
+        <property name="password">
+            <value>${jdbc.slave.password}</value>
+        </property>
+        <!-- 连接池中的最大的连接数 -->
+        <property name="maxActive">
+            <value>${jdbc.slave.maxActive}</value>
+        </property>
+        <!-- 最大等待的时间 (单位:毫秒) -->
+        <property name="maxWait">
+            <value>${jdbc.slave.maxWait}</value>
+        </property>
+    </bean>
+
+    <!-- 定义数据源，使用自己实现的数据源 -->
+    <bean id="dataSource" class="com.fh.shop.backend.dataSource.DynamicDataSource">
+        <!-- 设置多个数据源 -->
+        <property name="targetDataSources">
+            <map key-type="java.lang.String">
+                <!-- 这个key需要和程序中的key一致 -->
+                <entry key="master" value-ref="dataBaseInfo"/>
+                <entry key="slave" value-ref="slaveDataBaseInfo"/>
+            </map>
+        </property>
+        <!-- 设置默认的数据源，这里默认走写库 -->
+        <property name="defaultTargetDataSource" ref="dataBaseInfo"/>
+    </bean>
+
+    <!--生成sqlSession -->
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource" />
+        <!--  自动查找myBatis的xml配置文件，省掉sqlMapConfig.xml里的mappers手工配置 -->
+        <property name="mapperLocations" value="classpath:mappers/*.xml" />
+        <!-- 为所有的实体bean自动创建别名。Book:book  UserInfo:userInfo 默认为类名首字母小写-->
+        <property name="typeAliasesPackage" value="com.fh.shop.backend.po"></property>
+    </bean>
+
+    <!-- 通过 MapperScannerConfigurer自动扫描指定basePackage中的所有的接口，并且把sqlSession与接口结合-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.fh.shop.backend.mapper" />
+        <property name="sqlSessionFactoryBeanName" value="sqlSession" />
+    </bean>
+
+	<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataBaseInfo"/>
+    </bean>
+
+    <!-- 配置事务的传播特性 -->
+    <tx:advice id="txAdvice" transaction-manager="txManager"><!-- 配置事务管理器 -->
+        <tx:attributes>
+       	<!-- 事务默认情况下是在运行时异常时回滚，加上rollback-for="Exception"就会在非运行时异常的时候进行回滚 -->
+            <tx:method name="add*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="insert*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="save*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="del*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="modify*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="update*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="*" read-only="true"/>
+            <!-- 如果不是以上三种，则配置成只读事务(如select)。只读事务可以提高性能，当更新某个对象时，将不会再做脏数据检查。(因为是只读的并不用更新，所以不用再作比较,判断是否读取到脏数据。) -->
+        </tx:attributes>
+    </tx:advice>
+
+    <bean class="com.fh.shop.backend.dataSource.DataSourceAspect" id="dataSourceAspect" />
+
+    <!-- .. 代表改包下任意嵌套层次的子包 -->
+    <aop:config>
+        <!-- 定义切面，所有的service的所有方法 -->
+        <aop:pointcut id="txPointcut" expression="execution(* com.fh.shop.backend.biz..*.*(..))" />
+        <aop:advisor pointcut-ref="txPointcut" advice-ref="txAdvice"/>
+        <!-- 将切面应用到自定义的切面处理器上，-9999保证该切面优先级最高执行 -->
+        <aop:aspect ref="dataSourceAspect" order="-9999">
+            <aop:before method="before" pointcut-ref="txPointcut" />
+        </aop:aspect>
+    </aop:config>
+</beans>

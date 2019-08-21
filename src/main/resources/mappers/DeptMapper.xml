@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC  
+    "-//mybatis.org//DTD Mapper 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+   
+<mapper namespace="com.fh.shop.backend.mapper.department.IDeptMapper">
+
+	<!--查询-->
+	<select id="findDeptList" resultType="department">
+		select id,deptName,pId,remark from t_dept;
+	</select>
+	<!--增加-->
+	<insert id="addDeptInfo" parameterType="department">
+		<selectKey keyProperty="id" resultType="int" order="AFTER">
+			select last_insert_id()
+		</selectKey>
+		insert into t_dept (pId,deptName,remark) values (#{pId},#{deptName},#{remark})
+	</insert>
+
+	<!--删除-->
+	<delete id="delDeptInfo" parameterType="list">
+		delete from t_dept where id in
+		<foreach collection="list" item="value" open="(" separator="," close=")">
+			#{value}
+		</foreach>
+	</delete>
+
+	<!--修改-->
+	<update id="updateDeptInfo" parameterType="department">
+		update t_dept set remark=#{remark},deptName = #{deptName} where id = #{id}
+	</update>
+</mapper>

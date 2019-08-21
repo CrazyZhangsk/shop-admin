@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC  
+    "-//mybatis.org//DTD Mapper 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+   
+<mapper namespace="com.fh.shop.backend.mapper.image.IImageMapper">
+	<!-- 实体bean与数据库表的对应 -->
+	<resultMap type="image" id="imageMap" >
+		<result column="id" property="id"/>
+		<result column="productId" property="product.id"/>
+		<result column="imagePath" property="imagePath"/>
+	</resultMap>
+
+	<!--增加产品图片-->
+	<insert id="addImage" parameterType="image">
+		insert into t_image (imagePath,productId) values
+		<foreach collection="list" separator="," item="image">
+			(#{image.imagePath},#{image.product.id})
+		</foreach>
+	</insert>
+
+
+	<!--查询产品图片-->
+	<select id="findProductImageList" parameterType="int" resultMap="imageMap">
+		select id,productId,imagePath from t_image where productId = #{value}
+	</select>
+
+	<!--修改时删除已经删除的信息-->
+	<delete id="delProductImage" parameterType="int">
+		delete from t_image where id in
+		<foreach collection="list" item="value" open="(" separator="," close=")">
+			#{value}
+		</foreach>
+	</delete>
+
+	<!--根据产品id删除-->
+	<delete id="delImgByProductId" parameterType="int">
+		delete from t_image where productId = #{value}
+	</delete>
+
+	<!--批量删除：查找对应的图片路径-->
+	<select id="findBatchProductImage" parameterType="int" resultType="image">
+		select id,productId,imagePath from t_image where productId in
+		<foreach collection="list" item="value" open="(" separator="," close=")">
+			#{value}
+		</foreach>
+	</select>
+	<!--批量删除：删除对应的数据库数据-->
+	<delete id="delImageBatch" parameterType="int">
+		delete from t_image where productId in
+		<foreach collection="list" item="value" open="(" separator="," close=")">
+			#{value}
+		</foreach>
+	</delete>
+</mapper>

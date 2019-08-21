@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://java.sun.com/xml/ns/javaee" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd" id="WebApp_ID" version="3.0">
+  
+  <!-- 配置log -->
+  <context-param>
+ <!--  设置根目录:路径一般是相对于web的root目录 -->
+    <param-name>webAppRootKey</param-name>
+    <param-value>shop.backend</param-value>	
+  </context-param>
+  <context-param>
+    <param-name>log4jConfigLocation</param-name>
+    <param-value>classpath:log/log4j.properties</param-value>
+  </context-param>
+  <context-param>
+    <param-name>log4jRefreshInterval</param-name>
+    <param-value>3000</param-value>
+  </context-param>
+  <listener>
+    <listener-class>org.springframework.web.util.Log4jConfigListener</listener-class>
+  </listener>
+  
+  <!-- 配置springMVC的核心配置文件 加载spring-mvc-controller.xml文件 -->
+  <servlet>
+        <servlet-name>fhServlet</servlet-name>
+        <servlet-class>
+            org.springframework.web.servlet.DispatcherServlet
+        </servlet-class>
+        <init-param>
+        	<!-- param-name 中的值不能改变  -->
+            <param-name>contextConfigLocation</param-name>
+            <param-value>
+                classpath:spring/spring-mvc-controller.xml
+            </param-value>
+        </init-param>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>fhServlet</servlet-name>
+        <url-pattern>*.jhtml</url-pattern>	<!-- 规定访问时的后缀名 可以为“/”即所有的后缀名都能访问 -->
+    </servlet-mapping>
+    
+    <!-- 处理中文乱码 -->
+    <filter>
+        <filter-name>fhFilter</filter-name>
+        <filter-class>
+            org.springframework.web.filter.CharacterEncodingFilter
+        </filter-class>
+        <init-param>
+            <param-name>encoding</param-name>
+            <param-value>utf-8</param-value>
+        </init-param>
+        <init-param>
+            <param-name>forceEncoding</param-name>
+            <param-value>false</param-value>
+        </init-param>
+    </filter>
+     <filter-mapping>
+        <filter-name>fhFilter</filter-name>
+        <!-- *.jhtml与配置spring—MVC.xml文件中的保持一致 -->
+        <url-pattern>*.jhtml</url-pattern>
+    </filter-mapping>
+
+
+    <!-- 通过ContextLoaderListener去加载spring的配置文件 -->
+    <context-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>
+            classpath:spring/spring-common.xml
+        </param-value>
+    </context-param>
+    <listener>
+        <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+    </listener>
+
+
+    <!--filter过滤器-->
+    <filter>
+        <filter-name>webContext</filter-name>
+        <filter-class>com.fh.shop.backend.common.WebContextFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>webContext</filter-name>
+        <url-pattern>*.jhtml</url-pattern>
+    </filter-mapping>
+  <!-- 验证码 -->
+  <servlet>
+    <servlet-name>imageCode</servlet-name>
+    <servlet-class>com.fh.shop.backend.servlet.ImageCodeServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>imageCode</servlet-name>
+    <url-pattern>/image/code</url-pattern>
+  </servlet-mapping>
+  <welcome-file-list>
+  	<welcome-file>login.jsp</welcome-file>
+  </welcome-file-list>
+</web-app>

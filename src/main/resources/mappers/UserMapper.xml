@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC  
+    "-//mybatis.org//DTD Mapper 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+   
+<mapper namespace="com.fh.shop.backend.mapper.user.IUserMapper">
+	<resultMap type="user" id="userMap">
+		<result column="id" property="id"/>
+		<result column="userName" property="userName"/>
+		<result column="password" property="password"/>
+		<result column="salt" property="salt"/>
+		<result column="lastLoginTime" property="lastLoginTime"/>
+		<result column="loginTime" property="loginTime"/>
+		<result column="birthday" property="birthday"/>
+		<result column="deptId" property="dept.id"/>
+		<result column="deptName" property="dept.deptName"/>
+		<result column="salary" property="salary"/>
+		<result column="sex" property="sex"/>
+		<result column="realName" property="realName"/>
+		<result column="lastErrorTime" property="lastErrorTime"/>
+		<result column="errorCount" property="errorCount"/>
+		<result column="status" property="status"/>
+		<result column="loginCount" property="loginCount"/>
+		<result column="headerImgPath" property="headerImgPath"/>
+	</resultMap>
+	<sql id="userWhere">
+		<where>
+			<if test="userName!='' and userName!=null">
+				and userName like concat('%',#{userName},'%')
+			</if>
+			<if test="maxSalary!=null">
+				and salary &lt;= #{maxSalary}
+			</if>
+			<if test="minSalary != null">
+				and salary >= #{minSalary}
+			</if>
+			<if test="minBirthday !=null">
+				and birthday >= #{minBirthday}
+			</if>
+			<if test="maxBirthday != null">
+				and birthday &lt;= #{maxBirthday}
+			</if>
+			<if test="idsList != null and idsList.size != 0">
+				and deptId in
+				<foreach collection="idsList" open="(" separator="," close=")" item="value">
+					#{value}
+				</foreach>
+			</if>
+		</where>
+	</sql>
+
+	<!--条件查询总条数-->
+	<select id="findTotalCount" parameterType="user" resultType="long">
+		select count(*) from t_user u left join t_dept d on u.deptId=d.id
+		<include refid="userWhere"></include>
+	</select>
+
+	<!--条件查询数据-->
+	<select id="findUserList" parameterType="user" resultMap="userMap">
+		select c.* from
+		(select u.*,d.deptName from t_user u left join t_dept d on u.deptId=d.id
+		<include refid="userWhere"></include>
+		order by ${sortField} ${sort}
+		) c
+		limit #{start},#{length}
+	</select>
+
+	<update id="updateBatchUserDept" parameterType="user">
+		update t_user set deptId = #{dept.id} where id in
+		<foreach collection="idsList" open="(" separator="," close=")" item="value">
+			#{value}
+		</foreach>
+	</update>
+
+	<select id="findUserInfoList" parameterType="user" resultMap="userMap">
+		select c.* from
+		(select u.*,d.deptName from t_user u left join t_dept d on u.deptId=d.id
+		<include refid="userWhere"></include>
+		) c
+	</select>
+
+	<!-- 登录判断 -->
+	<select id="userLogin" parameterType="user" resultMap="userMap">
+		select id,userName,password,salt,lastLoginTime,loginCount,loginTime,status,errorCount,lastErrorTime
+		from t_user where userName = #{userName}
+	</select>
+
+	<!--用户注册-->
+	<insert id="addUser" parameterType="user">
+		insert into t_user (userName,password,salt,realName,birthday,deptId,salary,sex,loginCount,status,errorCount,headerImgPath) values
+		(#{userName},#{password},#{salt},#{realName},#{birthday},#{dept.id},#{salary},#{sex},0,0,0,#{headerImgPath})
+	</insert>
+
+	<!--登录成功的时候更改用户的上次登录时间、登陆次数-->
+	<update id="updateUser" parameterType="user">
+		update t_user set errorCount=0,loginCount=#{loginCount},lastLoginTime=#{lastLoginTime},loginTime=#{loginTime} where id=#{id}
+	</update>
+
+	<!--修改密码错误时的错误的登陆次数-->
+	<update id="updateUserErrorCount" parameterType="user">
+		update t_user set lastErrorTime=#{lastErrorTime},errorCount=#{errorCount} where id=#{id}
+	</update>
+
+	<!--修改用户的状态-->
+	<update id="updateUserStatus" parameterType="user">
+		update t_user set lastErrorTime=#{lastErrorTime},errorCount=0,status=1 where id=#{id}
+	</update>
+
+	<!--修改回显-->
+	<select id="findUpdateUserInfo" parameterType="int" resultMap="userMap">
+		select u.*,d.deptName from t_user u left join t_dept d on u.deptId=d.id where u.id = #{value}
+	</select>
+
+	<!--修改-->
+	<update id="updateUserInfo" parameterType="user">
+		update t_user set userName=#{userName},headerImgPath=#{headerImgPath},password=#{password},salt=#{salt},realName=#{realName},birthday=#{birthday},deptId=#{dept.id},salary=#{salary},sex=#{sex} where id = #{id}
+	</update>
+</mapper>

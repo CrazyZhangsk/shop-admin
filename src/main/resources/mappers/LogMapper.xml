@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC  
+    "-//mybatis.org//DTD Mapper 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+   
+<mapper namespace="com.fh.shop.backend.mapper.log.ILogMapper">
+	<resultMap type="logInfo" id="logMap">
+		<result column="id" property="id"/>
+		<result column="username" property="userName"/>
+		<result column="content" property="content"/>
+		<result column="status" property="status"/>
+		<result column="executeTime" property="executeTime"/>
+		<result column="createTime" property="createTime"/>
+		<result column="ipAdd" property="ipAdd"/>
+	</resultMap>
+	
+	<!-- 登录判断 -->
+	<insert id="insertLog" parameterType="logInfo">
+		insert into t_log values(#{id},#{userName},#{content},#{status},#{executeTime},#{createTime},#{ipAdd})
+	</insert>
+</mapper>
